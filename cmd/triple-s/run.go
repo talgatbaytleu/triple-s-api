@@ -1,7 +1,6 @@
 package triples
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -39,13 +38,21 @@ var (
 // 	t.Execute(w, p)
 // }
 
+func putBucketHendler(w http.ResponseWriter, r *http.Request) {
+}
+
 func Handler(w http.ResponseWriter, r *http.Request) {
 	fullPath := r.URL.Path[1:]
-	fmt.Println(fullPath)
-	fmt.Println(r.Method)
-	fmt.Println(r)
-	fmt.Println("remoteAddr: ", r.RemoteAddr)
-	fmt.Println("remoteURI", r.RequestURI)
+
+	// HERE MUST BE PATH VALIDATION
+
+	switch r.Method {
+	case "PUT":
+
+	case "GET":
+
+	case "DELETE":
+	}
 	// if err != nil {
 	// 	http.Redirect(w, r, "/edit/"+title, http.StatusFound)
 	// 	return
