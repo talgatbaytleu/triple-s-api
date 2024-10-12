@@ -1,6 +1,9 @@
 package main
 
-import triples "triple-s/cmd/triple-s"
+import (
+	"fmt"
+	"regexp"
+)
 
 type struct_1 struct {
 	fieldOne int
@@ -8,11 +11,10 @@ type struct_1 struct {
 }
 
 func main() {
-	triples.Run()
-	// var obj struct_1
-	//
-	// obj.fieldOne = 1
-	// fmt.Println(obj.fieldOne)
-	// fmt.Printf("Type : %T\nValue : %+v\n", obj, obj)
-	// fmt.Println(obj)
+	// triples.Run()
+
+	re := regexp.MustCompile("([[:alpha:]]-[[:upper:]]){4}")
+	string1 := "quicK brown fox jumped over the lazy dog"
+	testBool := re.FindStringSubmatch(string1)
+	fmt.Println(testBool)
 }
