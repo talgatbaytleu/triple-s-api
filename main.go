@@ -1,20 +1,13 @@
 package main
 
-import (
-	"fmt"
-	"regexp"
-)
-
-type struct_1 struct {
-	fieldOne int
-	fieldTwo string
-}
+import triples "triple-s/cmd/triple-s"
 
 func main() {
-	// triples.Run()
-
-	re := regexp.MustCompile("([[:alpha:]]-[[:upper:]]){4}")
-	string1 := "quicK brown fox jumped over the lazy dog"
-	testBool := re.FindStringSubmatch(string1)
-	fmt.Println(testBool)
+	triples.Run()
+	// _, err := os.Stat("cmd")
+	// if os.IsNotExist(err) {
+	// 	fmt.Println("not exist")
+	// } else if os.IsExist(err) {
+	// 	fmt.Println("exist")
+	// }
 }
