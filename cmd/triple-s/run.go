@@ -1,12 +1,10 @@
 package triples
 
 import (
-	"encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"triple-s/internal/core"
 )
@@ -92,40 +90,45 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// UPDATE BUCKETS.CSV LastModified TIME
-		csvBucketsFile, err := os.Open(dirPath + "buckets.csv")
+		err = core.UpdateExistingBucketMetadata(dirPath, bucket)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Updating the buckets.csv after creating obj: %s\n", err)
+			fmt.Println("6")
 			return
 		}
-
-		csvBucketsReader := csv.NewReader(csvBucketsFile)
-		defer csvBucketsFile.Close()
-
-		csvBucketsRecords, err := csvBucketsReader.ReadAll()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "buckets.csv parsing stage: %s\n", err)
-			return
-		}
-
-		for i, row := range csvBucketsRecords {
-			if row[0] == bucket {
-				csvBucketsRecords[i][2] = time.Now().Format("2006-01-02 15:04:05")
-			}
-		}
-
-		csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Opening the buckets.csv to rewrite it %s\n", err)
-			return
-		}
-
-		csvBucketsWriter := csv.NewWriter(csvBucketsFile)
-
-		err = csvBucketsWriter.WriteAll(csvBucketsRecords)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Updating the bucket last modified stage: %s\n", err)
-			return
-		}
+		// csvBucketsFile, err := os.Open(dirPath + "buckets.csv")
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "Updating the buckets.csv after creating obj: %s\n", err)
+		// 	return
+		// }
+		//
+		// csvBucketsReader := csv.NewReader(csvBucketsFile)
+		// defer csvBucketsFile.Close()
+		//
+		// csvBucketsRecords, err := csvBucketsReader.ReadAll()
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "buckets.csv parsing stage: %s\n", err)
+		// 	return
+		// }
+		//
+		// for i, row := range csvBucketsRecords {
+		// 	if row[0] == bucket {
+		// 		csvBucketsRecords[i][2] = time.Now().Format("2006-01-02 15:04:05")
+		// 	}
+		// }
+		//
+		// csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY, 0644)
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "Opening the buckets.csv to rewrite it %s\n", err)
+		// 	return
+		// }
+		//
+		// csvBucketsWriter := csv.NewWriter(csvBucketsFile)
+		//
+		// err = csvBucketsWriter.WriteAll(csvBucketsRecords)
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "Updating the bucket last modified stage: %s\n", err)
+		// 	return
+		// }
 
 		w.Write([]byte("Object successfully created!"))
 

@@ -122,3 +122,38 @@ func UpdateExistingObjMetadata(
 
 	return nil
 }
+
+func UpdateExistingBucketMetadata(dirPath, bucket string) error {
+	csvBucketsFile, err := os.Open(dirPath + "buckets.csv")
+	if err != nil {
+		return err
+	}
+
+	csvBucketsReader := csv.NewReader(csvBucketsFile)
+	defer csvBucketsFile.Close()
+
+	csvBucketsRecords, err := csvBucketsReader.ReadAll()
+	if err != nil {
+		return err
+	}
+
+	for i, row := range csvBucketsRecords {
+		if row[0] == bucket {
+			csvBucketsRecords[i][2] = time.Now().Format("2006-01-02 15:04:05")
+		}
+	}
+
+	csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	csvBucketsWriter := csv.NewWriter(csvBucketsFile)
+
+	err = csvBucketsWriter.WriteAll(csvBucketsRecords)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
