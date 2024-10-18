@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"triple-s/internal/core"
@@ -52,8 +51,7 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 		// PUT object!!!
 	case "object":
 		// check if the bucket exists
-		dirInfo, err := os.Stat(dirPath + bucket)
-		dirInfo = dirInfo
+		_, err := os.Stat(dirPath + bucket)
 		if err != nil {
 			if os.IsNotExist(err) {
 				http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
@@ -71,93 +69,26 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("3")
 			return
 		}
-		// objectFile, err := os.Create(dirPath + bucket + "/" + object)
-		// defer objectFile.Close()
-		// if err != nil {
-		// 	http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-		// 	fmt.Fprintf(os.Stderr, "Object creating stage: %s\n", err)
-		// 	return
-		// }
-		//
-		// // write r.body into object
-		// objectSize, err := io.Copy(objectFile, r.Body)
-		// if err != nil {
-		// 	http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-		// 	fmt.Fprintf(os.Stderr, "Body content Copy to object stage: %s\n", err)
-		// 	return
-		// }
 
 		// check if the objects.csv exists, if NOT ==> create
 		_, err = os.Stat(dirPath + bucket + "/" + "objects.csv")
 		if err != nil {
 			if os.IsNotExist(err) {
-				csvObjectsFile, err := os.Create(dirPath + bucket + "/" + "objects.csv")
+				err := core.CreateNewObjectsCSV(dirPath, bucket, object, objectSize, objectFile)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Creating objects.csv stage: %s\n", err)
+					fmt.Println("4")
+					return
 				}
-				csvObjectsFile.WriteString(
-					"ObjectKey,Size,ContentType,LastModified\n" + object + "," + strconv.Itoa(
-						int(objectSize),
-					) + "," + http.DetectContentType(
-						[]byte(objectFile.Name()),
-					) + "," + time.Now().
-						Format("2006-01-02 15:04:05"),
-				)
-				defer csvObjectsFile.Close()
 			} else {
 				fmt.Fprintf(os.Stderr, "Stat objects.csv stage: %s\n", err)
+				return
 			}
 		} else {
-			_, err := os.Stat(dirPath + bucket + "/" + object)
-
-			if os.IsNotExist(err) {
-				csvObjectsFile, err := os.OpenFile(dirPath+bucket+"/"+"objects.csv", os.O_APPEND|os.O_WRONLY, 0644)
-				if err != nil {
-					http.Error(w, "500 - Server Error", http.StatusInternalServerError)
-					fmt.Fprintf(os.Stderr, "objects.csv opening stage: %s\n", err)
-				}
-				defer csvObjectsFile.Close()
-				csvObjectsFile.WriteString("\n" + object + "," + strconv.Itoa(int(objectSize)) + "," + http.DetectContentType([]byte(objectFile.Name())) + "," + time.Now().Format("2006-01-02 15:04:05"))
-			}
-
-			// UPDATE OBJECTS.CSV IF OBJECT ALREADY EXISTS
-			csvObjectsFile, err := os.Open(dirPath + bucket + "/" + "objects.csv")
+			err := core.UpdateExistingObjMetadata(dirPath, bucket, object, objectSize, objectFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Updating objects.csv after creating obj if it exists: %s\n", err)
+				fmt.Println("5")
 				return
 			}
-
-			csvObjectsReader := csv.NewReader((csvObjectsFile))
-			defer csvObjectsFile.Close()
-
-			csvObjectsRecords, err := csvObjectsReader.ReadAll()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "objects.csv parsing stage if exists: %s\n", err)
-				return
-			}
-
-			for i, row := range csvObjectsRecords {
-				if row[0] == object {
-					csvObjectsRecords[i][1] = strconv.Itoa(int(objectSize))
-					csvObjectsRecords[i][2] = http.DetectContentType([]byte(objectFile.Name()))
-					csvObjectsRecords[i][3] = time.Now().Format("2006-01-02 15:04:05")
-				}
-			}
-
-			csvObjectsFile, err = os.OpenFile(dirPath+bucket+"/"+"objects.csv", os.O_WRONLY, 0644)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Opening the objects.csv to rewrite it if exists %s\n", err)
-				return
-			}
-
-			csvObjectsWriter := csv.NewWriter(csvObjectsFile)
-
-			err = csvObjectsWriter.WriteAll(csvObjectsRecords)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Updating the objects.csv if it exists : %s\n", err)
-				return
-			}
-
 		}
 
 		// UPDATE BUCKETS.CSV LastModified TIME
