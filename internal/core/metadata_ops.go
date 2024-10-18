@@ -107,7 +107,7 @@ func UpdateExistingObjMetadata(
 				"\n",
 		)
 	} else {
-		csvObjectsFile, err = os.OpenFile(dirPath+bucket+"/"+"objects.csv", os.O_WRONLY, 0644)
+		csvObjectsFile, err = os.OpenFile(dirPath+bucket+"/"+"objects.csv", os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
@@ -144,6 +144,43 @@ func UpdateExistingBucketMetadata(dirPath, bucket string) error {
 	}
 
 	csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	csvBucketsWriter := csv.NewWriter(csvBucketsFile)
+
+	err = csvBucketsWriter.WriteAll(csvBucketsRecords)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func RemoveBucketMetadata(dirPath, bucket string) error {
+	csvBucketsFile, err := os.Open(dirPath + "buckets.csv")
+	if err != nil {
+		return err
+	}
+
+	csvBucketsReader := csv.NewReader(csvBucketsFile)
+	defer csvBucketsFile.Close()
+
+	csvBucketsRecords, err := csvBucketsReader.ReadAll()
+	if err != nil {
+		return err
+	}
+
+	var filteredRecords [][]string
+	for _, row := range csvBucketsRecords {
+		if row[0] == bucket {
+			continue
+		}
+		filteredRecords = append(filteredRecords, row)
+	}
+
+	csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}

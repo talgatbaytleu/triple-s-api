@@ -95,41 +95,6 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("6")
 			return
 		}
-		// csvBucketsFile, err := os.Open(dirPath + "buckets.csv")
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "Updating the buckets.csv after creating obj: %s\n", err)
-		// 	return
-		// }
-		//
-		// csvBucketsReader := csv.NewReader(csvBucketsFile)
-		// defer csvBucketsFile.Close()
-		//
-		// csvBucketsRecords, err := csvBucketsReader.ReadAll()
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "buckets.csv parsing stage: %s\n", err)
-		// 	return
-		// }
-		//
-		// for i, row := range csvBucketsRecords {
-		// 	if row[0] == bucket {
-		// 		csvBucketsRecords[i][2] = time.Now().Format("2006-01-02 15:04:05")
-		// 	}
-		// }
-		//
-		// csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY, 0644)
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "Opening the buckets.csv to rewrite it %s\n", err)
-		// 	return
-		// }
-		//
-		// csvBucketsWriter := csv.NewWriter(csvBucketsFile)
-		//
-		// err = csvBucketsWriter.WriteAll(csvBucketsRecords)
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "Updating the bucket last modified stage: %s\n", err)
-		// 	return
-		// }
-
 		w.Write([]byte("Object successfully created!"))
 
 	default:
@@ -167,19 +132,64 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	endpoint := core.DetermineEndpoint(fullPath)
 	bucket, object := core.SplitPath(fullPath)
 
-	object = object
-	bucket = bucket
 	switch endpoint {
 	case "bucket":
+		// CHECK IF THE BUCKET exists
+		// _, err := os.Stat(dirPath + bucket)
+		// if err != nil {
+		// 	if os.IsNotExist(err) {
+		// 		http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
+		// 		return
+		// 	} else {
+		// 		http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+		// 		fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
+		// 		return
+		// 	}
+		// }
+		err := os.Remove(dirPath + bucket)
+		if err != nil {
+			fmt.Println("8")
+			return
+		}
+
+		err = core.RemoveBucketMetadata(dirPath, bucket)
+		if err != nil {
+			fmt.Println("9")
+			return
+		}
+
 	// check if bucket exists and it's empty
 	// remove bucket
 	// update the buckets.csv
 	// coresponding response
 	case "object":
-	// check if bucket and objects are exists
-	// remove object
-	// update the object.csv
-	// coresponding response
+		// CHECK IF THE BUCKET exists
+		_, err := os.Stat(dirPath + bucket)
+		if err != nil {
+			if os.IsNotExist(err) {
+				http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
+				return
+			} else {
+				http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+				fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
+				return
+			}
+		}
+
+		// remove object and metadata
+		err = core.DeleteObjectAndMeta(dirPath, bucket, object)
+		if err != nil {
+			fmt.Println("7")
+			return
+		}
+
+		err = core.UpdateExistingBucketMetadata(dirPath, bucket)
+		if err != nil {
+			fmt.Println("8")
+			return
+		}
+		// coresponding response
+		w.Write([]byte("Object deleted"))
 	default:
 		fmt.Println("endpoint in Delete handler wrong")
 	}
