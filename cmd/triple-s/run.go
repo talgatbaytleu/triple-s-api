@@ -113,12 +113,52 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	switch endpoint {
 	case "bucket":
 		if bucket == "" {
+
+			xmlResponse, err := core.RootBucketsXML(dirPath)
+			if err != nil {
+				fmt.Println("10")
+				return
+			}
+
+			w.Write(xmlResponse)
 			// return an XML list of all bucket names and metadata
 			// response with 200 OK status
 		} else {
-			// Error response
 		}
 	case "object":
+		if object == "" {
+			_, err := os.Stat(dirPath + bucket)
+			if err != nil {
+				if os.IsNotExist(err) {
+					http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
+					return
+				} else {
+					http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+					fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
+					return
+				}
+			}
+
+			xmlResponse, err := core.BucketObjectsXML(dirPath, bucket)
+			if err != nil {
+				fmt.Println("11")
+				return
+			}
+			w.Write(xmlResponse)
+
+		} else {
+		}
+		_, err := os.Stat(dirPath + bucket)
+		if err != nil {
+			if os.IsNotExist(err) {
+				http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
+				return
+			} else {
+				http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+				fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
+				return
+			}
+		}
 	// check if bucket exists
 	// check if file exists
 	// return the binary content of the object with "content-type" set to imagee/png
