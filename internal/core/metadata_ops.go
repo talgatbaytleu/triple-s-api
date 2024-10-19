@@ -47,12 +47,6 @@ func CreateNewObjectsCSV(
 		return err
 	}
 
-	// buffer := make([]byte, 512)
-	// _, err = objectFile.Read(buffer)
-	// if err != nil {
-	// 	return err
-	// }
-
 	csvObjectsFile.WriteString(
 		"ObjectKey,Size,ContentType,LastModified\n" + object + "," + strconv.Itoa(
 			objectSize,
@@ -82,13 +76,6 @@ func UpdateExistingObjMetadata(
 	if err != nil {
 		return err
 	}
-
-	// buffer := make([]byte, 512)
-	// _, err = objectFile.Read(buffer)
-	// if err != nil && err != io.EOF {
-	// 	fmt.Println("here")
-	// 	return err
-	// }
 
 	for i, row := range csvObjectsRecords {
 		if row[0] == object {
