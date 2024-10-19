@@ -63,6 +63,7 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 
 		// create object
 		objectFile, objectSize, err := core.CreateObject(dirPath, bucket, object, r)
+		defer objectFile.Close()
 		if err != nil {
 			fmt.Println("3")
 			return
@@ -72,7 +73,7 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 		_, err = os.Stat(dirPath + bucket + "/" + "objects.csv")
 		if err != nil {
 			if os.IsNotExist(err) {
-				err := core.CreateNewObjectsCSV(dirPath, bucket, object, objectSize, objectFile)
+				err := core.CreateNewObjectsCSV(dirPath, bucket, object, r, objectSize)
 				if err != nil {
 					fmt.Println("4")
 					return
@@ -82,9 +83,9 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			err := core.UpdateExistingObjMetadata(dirPath, bucket, object, objectSize, objectFile)
+			err := core.UpdateExistingObjMetadata(dirPath, bucket, object, r, objectSize)
 			if err != nil {
-				fmt.Println("5")
+				fmt.Println("5", err)
 				return
 			}
 		}
@@ -134,18 +135,6 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch endpoint {
 	case "bucket":
-		// CHECK IF THE BUCKET exists
-		// _, err := os.Stat(dirPath + bucket)
-		// if err != nil {
-		// 	if os.IsNotExist(err) {
-		// 		http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-		// 		return
-		// 	} else {
-		// 		http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-		// 		fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-		// 		return
-		// 	}
-		// }
 		err := os.Remove(dirPath + bucket)
 		if err != nil {
 			fmt.Println("8")
@@ -158,10 +147,6 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	// check if bucket exists and it's empty
-	// remove bucket
-	// update the buckets.csv
-	// coresponding response
 	case "object":
 		// CHECK IF THE BUCKET exists
 		_, err := os.Stat(dirPath + bucket)

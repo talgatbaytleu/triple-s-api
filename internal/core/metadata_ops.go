@@ -17,7 +17,7 @@ func MetadataBucketCreation(bucket string) string {
 	timeModified = timeCreated
 	status = "active"
 
-	return "\n" + bucket + "," + timeCreated + "," + timeModified + "," + status
+	return bucket + "," + timeCreated + "," + timeModified + "," + status + "\n"
 }
 
 func CreateNewBucketsCSV(dirPath string) error {
@@ -29,7 +29,7 @@ func CreateNewBucketsCSV(dirPath string) error {
 			if err != nil {
 				return err
 			}
-			file.WriteString("Name,CreationTime,LastModifiedTime,Status")
+			file.WriteString("Name,CreationTime,LastModifiedTime,Status\n")
 		} else {
 			return err
 		}
@@ -39,19 +39,24 @@ func CreateNewBucketsCSV(dirPath string) error {
 
 func CreateNewObjectsCSV(
 	dirPath, bucket, object string,
+	r *http.Request,
 	objectSize int,
-	objectFile *os.File,
 ) error {
 	csvObjectsFile, err := os.Create(dirPath + bucket + "/" + "objects.csv")
 	if err != nil {
 		return err
 	}
+
+	// buffer := make([]byte, 512)
+	// _, err = objectFile.Read(buffer)
+	// if err != nil {
+	// 	return err
+	// }
+
 	csvObjectsFile.WriteString(
 		"ObjectKey,Size,ContentType,LastModified\n" + object + "," + strconv.Itoa(
 			objectSize,
-		) + "," + http.DetectContentType(
-			[]byte(objectFile.Name()),
-		) + "," + time.Now().
+		) + "," + r.Header.Get("content-type") + "," + time.Now().
 			Format("2006-01-02 15:04:05") + "\n",
 	)
 	defer csvObjectsFile.Close()
@@ -60,8 +65,8 @@ func CreateNewObjectsCSV(
 
 func UpdateExistingObjMetadata(
 	dirPath, bucket, object string,
+	r *http.Request,
 	objectSize int,
-	objectFile *os.File,
 ) error {
 	var objectAlreadyExists bool = false
 
@@ -78,10 +83,17 @@ func UpdateExistingObjMetadata(
 		return err
 	}
 
+	// buffer := make([]byte, 512)
+	// _, err = objectFile.Read(buffer)
+	// if err != nil && err != io.EOF {
+	// 	fmt.Println("here")
+	// 	return err
+	// }
+
 	for i, row := range csvObjectsRecords {
 		if row[0] == object {
-			csvObjectsRecords[i][1] = strconv.Itoa(int(objectSize))
-			csvObjectsRecords[i][2] = http.DetectContentType([]byte(objectFile.Name()))
+			csvObjectsRecords[i][1] = strconv.Itoa(objectSize)
+			csvObjectsRecords[i][2] = r.Header.Get("content-type")
 			csvObjectsRecords[i][3] = time.Now().Format("2006-01-02 15:04:05")
 			objectAlreadyExists = true
 		}
@@ -100,9 +112,7 @@ func UpdateExistingObjMetadata(
 		csvObjectsFile.WriteString(
 			object + "," + strconv.Itoa(
 				int(objectSize),
-			) + "," + http.DetectContentType(
-				[]byte(objectFile.Name()),
-			) + "," + time.Now().
+			) + "," + r.Header.Get("content-type") + "," + time.Now().
 				Format("2006-01-02 15:04:05") +
 				"\n",
 		)
@@ -143,7 +153,7 @@ func UpdateExistingBucketMetadata(dirPath, bucket string) error {
 		}
 	}
 
-	csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY, 0644)
+	csvBucketsFile, err = os.OpenFile(dirPath+"buckets.csv", os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -187,7 +197,7 @@ func RemoveBucketMetadata(dirPath, bucket string) error {
 
 	csvBucketsWriter := csv.NewWriter(csvBucketsFile)
 
-	err = csvBucketsWriter.WriteAll(csvBucketsRecords)
+	err = csvBucketsWriter.WriteAll(filteredRecords)
 	if err != nil {
 		return err
 	}
