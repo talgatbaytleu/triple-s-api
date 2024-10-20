@@ -71,6 +71,42 @@ func RootBucketsXML(dirPath string) ([]byte, error) {
 	return xmlData, nil
 }
 
+func SingleBucketXML(dirPath, bucketName string) ([]byte, error) {
+	file, err := os.Open(dirPath + "buckets.csv")
+	defer file.Close()
+	if err != nil {
+		return make([]byte, 0), err
+	}
+
+	csvReader := csv.NewReader(file)
+
+	csvRecords, err := csvReader.ReadAll()
+	if err != nil {
+		return make([]byte, 0), err
+	}
+
+	var singleBucket Bucket
+
+	for i, row := range csvRecords {
+		if i == 0 || row[0] != bucketName {
+			continue
+		}
+
+		singleBucket.Name = row[0]
+		singleBucket.CreationTime = row[1]
+		singleBucket.LastModifiedTime = row[2]
+		singleBucket.Status = row[3]
+
+	}
+
+	xmlData, err := xml.MarshalIndent(singleBucket, "", " ")
+	if err != nil {
+		return make([]byte, 0), nil
+	}
+
+	return xmlData, nil
+}
+
 func BucketObjectsXML(dirPath, bucketName string) ([]byte, error) {
 	file, err := os.Open(dirPath + bucketName + "/" + "objects.csv")
 	defer file.Close()

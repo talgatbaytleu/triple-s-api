@@ -109,7 +109,6 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	endpoint := core.DetermineEndpoint(fullPath)
 	bucket, object := core.SplitPath(fullPath)
 
-	object = object
 	switch endpoint {
 	case "bucket":
 		if bucket == "" {
@@ -124,6 +123,25 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 			// return an XML list of all bucket names and metadata
 			// response with 200 OK status
 		} else {
+			_, err := os.Stat(dirPath + bucket)
+			if err != nil {
+				if os.IsNotExist(err) {
+					http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
+					return
+				} else {
+					http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+					fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
+					return
+				}
+			}
+
+			xmlResponse, err := core.SingleBucketXML(dirPath, bucket)
+			if err != nil {
+				fmt.Println("12")
+				return
+			}
+
+			w.Write(xmlResponse)
 		}
 	case "object":
 		if object == "" {
@@ -147,16 +165,16 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write(xmlResponse)
 
 		} else {
-		}
-		_, err := os.Stat(dirPath + bucket)
-		if err != nil {
-			if os.IsNotExist(err) {
-				http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-				return
-			} else {
-				http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-				fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-				return
+			_, err := os.Stat(dirPath + bucket)
+			if err != nil {
+				if os.IsNotExist(err) {
+					http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
+					return
+				} else {
+					http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+					fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
+					return
+				}
 			}
 		}
 	// check if bucket exists
