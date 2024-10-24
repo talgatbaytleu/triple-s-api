@@ -22,50 +22,45 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(endpoint)
 	switch endpoint {
 	case "bucket":
-		isBucketNameValid, bucketNameErrMessage := core.ValidateBucket(bucket)
-		if isBucketNameValid {
+		err := core.ValidateBucket(bucket)
+		if err == nil {
 
 			err := core.CreateNewBucket(dirPath, bucket)
 			if err != nil {
-				fmt.Println("1")
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 			// UPDATE METADATA IN BUCKETS.CSV
 
 			err = core.AddMetaToBucketsCSV(dirPath, bucket)
 			if err != nil {
-				fmt.Println("2")
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 
 		} else {
-			http.Error(w, "400 - Bad Request "+bucketNameErrMessage, http.StatusBadRequest)
+			core.ResponseErrorXML(err, fullPath, w)
 			return
 		}
 
 		// 200 RESPONSE
 		w.Write([]byte("Bucket successfully created!"))
+		return
 
 		// PUT object!!!
 	case "object":
 		// check if the bucket exists
-		_, err := os.Stat(dirPath + bucket)
-		if err != nil {
-			if os.IsNotExist(err) {
-				http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-				return
-			} else {
-				http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-				fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-				return
-			}
-		}
 
+		err := core.CheckBucketExist(dirPath, bucket)
+		if err != nil {
+			core.ResponseErrorXML(err, fullPath, w)
+			return
+		}
 		// create object
 		objectFile, objectSize, err := core.CreateObject(dirPath, bucket, object, r)
 		defer objectFile.Close()
 		if err != nil {
-			fmt.Println("3")
+			core.ResponseErrorXML(err, fullPath, w)
 			return
 		}
 
@@ -75,17 +70,17 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 			if os.IsNotExist(err) {
 				err := core.CreateNewObjectsCSV(dirPath, bucket, object, r, objectSize)
 				if err != nil {
-					fmt.Println("4")
+					core.ResponseErrorXML(err, fullPath, w)
 					return
 				}
 			} else {
-				fmt.Fprintf(os.Stderr, "Stat objects.csv stage: %s\n", err)
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 		} else {
 			err := core.UpdateExistingObjMetadata(dirPath, bucket, object, r, objectSize)
 			if err != nil {
-				fmt.Println("5", err)
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 		}
@@ -93,14 +88,15 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 		// UPDATE BUCKETS.CSV LastModified TIME
 		err = core.UpdateExistingBucketMetadata(dirPath, bucket)
 		if err != nil {
-			fmt.Println("6")
+			fmt.Println("6", err)
 			return
 		}
 		w.Write([]byte("Object successfully created!"))
+		return
 
 	default:
-		http.Error(w, "500 - Internal Server Error", 500)
-		fmt.Fprintf(os.Stderr, "Endpoint in Put handler wrong")
+		core.ResponseErrorXML(core.ErrWrongEndpoint, fullPath, w)
+		return
 	}
 }
 
@@ -115,74 +111,59 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 			xmlResponse, err := core.RootBucketsXML(dirPath)
 			if err != nil {
-				fmt.Println("10")
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 
 			w.Write(xmlResponse)
-			// return an XML list of all bucket names and metadata
-			// response with 200 OK status
+			return
 		} else {
-			_, err := os.Stat(dirPath + bucket)
+			err := core.CheckBucketExist(dirPath, bucket)
 			if err != nil {
-				if os.IsNotExist(err) {
-					http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-					return
-				} else {
-					http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-					fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-					return
-				}
+				core.ResponseErrorXML(err, fullPath, w)
+				return
 			}
 
 			xmlResponse, err := core.SingleBucketXML(dirPath, bucket)
 			if err != nil {
-				fmt.Println("12")
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 
 			w.Write(xmlResponse)
+			return
 		}
 	case "object":
 		if object == "" {
-			_, err := os.Stat(dirPath + bucket)
-			if err != nil {
-				if os.IsNotExist(err) {
-					http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-					return
-				} else {
-					http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-					fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-					return
-				}
-			}
 
+			err := core.CheckBucketExist(dirPath, bucket)
+			if err != nil {
+				core.ResponseErrorXML(err, fullPath, w)
+				return
+			}
 			xmlResponse, err := core.BucketObjectsXML(dirPath, bucket)
 			if err != nil {
-				fmt.Println("11")
+				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
 			w.Write(xmlResponse)
 
 		} else {
-			_, err := os.Stat(dirPath + bucket)
+			err := core.CheckBucketExist(dirPath, bucket)
 			if err != nil {
-				if os.IsNotExist(err) {
-					http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-					return
-				} else {
-					http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-					fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-					return
-				}
+				core.ResponseErrorXML(err, fullPath, w)
+				return
+			}
+
+			err = core.CheckObjectExist(dirPath, bucket, object)
+			if err != nil {
+				core.ResponseErrorXML(err, fullPath, w)
+				return
 			}
 		}
-	// check if bucket exists
-	// check if file exists
-	// return the binary content of the object with "content-type" set to imagee/png
-	// "content-length" bytes
 	default:
-		fmt.Println("endpoint in Get handler wrong")
+		core.ResponseErrorXML(core.ErrWrongEndpoint, fullPath, w)
+		return
 	}
 }
 
@@ -193,48 +174,53 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch endpoint {
 	case "bucket":
-		err := os.Remove(dirPath + bucket)
+		err := core.CheckBukcetEmpty(dirPath, bucket)
 		if err != nil {
-			fmt.Println("8")
+			core.ResponseErrorXML(err, fullPath, w)
+			return
+		}
+
+		err = os.Remove(dirPath + bucket)
+		if err != nil {
+			core.ResponseErrorXML(err, fullPath, w)
 			return
 		}
 
 		err = core.RemoveBucketMetadata(dirPath, bucket)
 		if err != nil {
-			fmt.Println("9")
+			core.ResponseErrorXML(err, fullPath, w)
 			return
 		}
 
+		w.WriteHeader(204)
+		return
 	case "object":
 		// CHECK IF THE BUCKET exists
-		_, err := os.Stat(dirPath + bucket)
+
+		err := core.CheckBucketExist(dirPath, bucket)
 		if err != nil {
-			if os.IsNotExist(err) {
-				http.Error(w, "400 - Bad Request, bucket doesn't exist", http.StatusBadRequest)
-				return
-			} else {
-				http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
-				fmt.Fprintf(os.Stderr, "Stat bucket stage: %s\n", err)
-				return
-			}
+			core.ResponseErrorXML(err, fullPath, w)
+			return
 		}
 
-		// remove object and metadata
+		// remove object and metadata (object existens checked inside)
 		err = core.DeleteObjectAndMeta(dirPath, bucket, object)
 		if err != nil {
-			fmt.Println("7")
+			core.ResponseErrorXML(err, fullPath, w)
 			return
 		}
 
 		err = core.UpdateExistingBucketMetadata(dirPath, bucket)
 		if err != nil {
-			fmt.Println("8")
+			core.ResponseErrorXML(err, fullPath, w)
 			return
 		}
 		// coresponding response
-		w.Write([]byte("Object deleted"))
+		w.WriteHeader(204)
+		return
 	default:
-		fmt.Println("endpoint in Delete handler wrong")
+		core.ResponseErrorXML(core.ErrWrongEndpoint, fullPath, w)
+		return
 	}
 }
 

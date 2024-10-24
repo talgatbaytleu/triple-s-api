@@ -4,20 +4,18 @@ import (
 	"regexp"
 )
 
-func ValidateBucket(bucket string) (bool, string) {
-	// Bucket names must be unique across the system.
-
+func ValidateBucket(bucket string) error {
 	// Names should be between 3 and 63 characters long.
 	// Only lowercase letters, numbers, hyphens (-), and dots (.) are allowed.
 	match, _ := regexp.MatchString("^[0-9a-z\\.\\-]{3,63}$", bucket)
 	if !match {
-		return false, "Bucket Name should be between 3 and 63 characters long\nOnly lowercase letters, numbers, hyphens (-), and dots (.) are allowed."
+		return ErrInvBucketNameLongSymbols
 	}
 
 	// Must not begin or end with a hyphen.
 	match, _ = regexp.MatchString("^\\-|\\-$|\\-\\-|\\.\\.", bucket)
 	if match {
-		return false, "Bcuket name must not begin or end with a hyphen and must not contain two consecutive periods or dashes."
+		return ErrInvBucketNameDashPeriod
 	}
 
 	// Must not be formatted as an IP address (e.g., 192.168.0.1).
@@ -26,7 +24,7 @@ func ValidateBucket(bucket string) (bool, string) {
 		bucket,
 	)
 	if match {
-		return false, "Bucket name must not be formatted as an IP address (e.g., 192.168.0.1)."
+		return ErrInvBucketNameIP
 	}
-	return true, ""
+	return nil
 }

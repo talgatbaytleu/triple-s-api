@@ -1,6 +1,7 @@
 package core
 
 import (
+	"io"
 	"os"
 )
 
@@ -25,5 +26,32 @@ func AddMetaToBucketsCSV(dirPath, bucket string) error {
 	}
 
 	csvBucketsFile.WriteString(MetadataBucketCreation(bucket))
+	return nil
+}
+
+func CheckBucketExist(dirPath, bucket string) error {
+	_, err := os.Stat(dirPath + bucket)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrBucketNotExist
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+
+func CheckBukcetEmpty(dirPath, bucket string) error {
+	dir, err := os.Open(dirPath + bucket)
+	defer dir.Close()
+	if err != nil {
+		return err
+	}
+
+	_, err = dir.Readdir(1)
+	if err == io.EOF {
+		return ErrBucketNotEmpty
+	}
+
 	return nil
 }

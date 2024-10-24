@@ -20,8 +20,10 @@ func SplitPath(fullPath string) (string, string) {
 func DetermineEndpoint(fullPath string) string {
 	lenOfSlice := len(strings.Split(fullPath, "/"))
 
-	if lenOfSlice > 1 {
+	if lenOfSlice == 2 {
 		return "object"
+	} else if lenOfSlice == 1 {
+		return "bucket"
 	}
-	return "bucket"
+	return "unknown"
 }

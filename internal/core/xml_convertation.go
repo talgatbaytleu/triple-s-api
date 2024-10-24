@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/csv"
 	"encoding/xml"
+	"net/http"
 	"os"
 )
 
@@ -28,6 +29,13 @@ type Bucket struct {
 type rootContent struct {
 	XMLName xml.Name `xml:"Buckets"`
 	Buckets []Bucket `xml:"Bucket"`
+}
+
+type errStruct struct {
+	XMLName      xml.Name `xml:"Error"`
+	StatusCode   int      `xml:"Code"`
+	ErrorMessage string   `xml:"Message"`
+	Resource     string
 }
 
 func RootBucketsXML(dirPath string) ([]byte, error) {
@@ -146,4 +154,25 @@ func BucketObjectsXML(dirPath, bucketName string) ([]byte, error) {
 	}
 
 	return xmlData, nil
+}
+
+func ResponseErrorXML(err error, urlpath string, w http.ResponseWriter) {
+	var errstr errStruct
+	errstr.Resource = urlpath
+	errstr.ErrorMessage = err.Error()
+
+	switch err {
+	case ErrBucketNotExist, ErrObjectNotExist, ErrWrongEndpoint:
+		errstr.StatusCode = 404
+	case ErrBucketAlreadyExists, ErrBucketNotEmpty:
+		errstr.StatusCode = 409
+	case ErrInvBucketNameIP, ErrInvBucketNameDashPeriod, ErrInvBucketNameLongSymbols:
+		errstr.StatusCode = 400
+	default:
+		errstr.StatusCode = 500
+	}
+
+	xmlData, _ := xml.MarshalIndent(errstr, "", " ")
+	http.Error(w, string(xmlData), errstr.StatusCode)
+	return
 }

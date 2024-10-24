@@ -42,6 +42,9 @@ func DeleteObjectAndMeta(dirPath, bucket, object string) error {
 			// remove file
 			err := os.Remove(dirPath + bucket + "/" + object)
 			if err != nil {
+				if os.IsNotExist(err) {
+					return ErrObjectNotExist
+				}
 				return err
 			}
 			ObjectExisted = true
@@ -52,8 +55,14 @@ func DeleteObjectAndMeta(dirPath, bucket, object string) error {
 	}
 
 	if !ObjectExisted {
-		err := os.Remove(dirPath + bucket + "/" + object)
-		return err
+		return ErrObjectNotExist
+		// err := os.Remove(dirPath + bucket + "/" + object)
+		// 	if err != nil {
+		//       if os.IsNotExist(err){
+		//         return ErrObjectNotExist
+		//       }
+		// 		return err
+		// 	}
 	}
 
 	if len(filteredRecords) == 1 {
@@ -79,5 +88,17 @@ func DeleteObjectAndMeta(dirPath, bucket, object string) error {
 		return err
 	}
 
+	return nil
+}
+
+func CheckObjectExist(dirPath, bucket, object string) error {
+	_, err := os.Stat(dirPath + bucket + "/" + object)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrObjectNotExist
+		} else {
+			return err
+		}
+	}
 	return nil
 }
