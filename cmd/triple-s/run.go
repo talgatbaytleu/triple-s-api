@@ -160,6 +160,14 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 				core.ResponseErrorXML(err, fullPath, w)
 				return
 			}
+
+			objContent, err := os.ReadFile(dirPath + bucket + "/" + object)
+			if err != nil {
+				core.ResponseErrorXML(err, fullPath, w)
+				return
+			}
+			w.Write(objContent)
+			return
 		}
 	default:
 		core.ResponseErrorXML(core.ErrWrongEndpoint, fullPath, w)
