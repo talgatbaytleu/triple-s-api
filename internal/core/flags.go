@@ -7,8 +7,10 @@ import (
 )
 
 func InitFlags() (string, string) {
+	var help bool
 	var dirPath string
 	var port string
+	flag.BoolVar(&help, "help", false, "triple-s usage information")
 	flag.StringVar(
 		&dirPath,
 		"dir",
@@ -19,6 +21,19 @@ func InitFlags() (string, string) {
 	flag.StringVar(&port, "port", "8080", "port number API gonna listening to")
 	flag.Parse()
 
+	if help {
+		fmt.Println(`Simple Storage Service.
+
+**Usage:**
+    triple-s [-port <N>] [-dir <S>]  
+    triple-s --help
+
+**Options:**
+- --help     Show this screen.
+- --port N   Port number
+- --dir S    Path to the directory`)
+		os.Exit(0)
+	}
 	if dirPath == "" {
 		fmt.Fprintf(
 			os.Stderr,

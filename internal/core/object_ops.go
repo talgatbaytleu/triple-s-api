@@ -25,6 +25,9 @@ func DeleteObjectAndMeta(dirPath, bucket, object string) error {
 
 	csvObjectsFile, err := os.Open(dirPath + bucket + "/" + "objects.csv")
 	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrObjectNotExist
+		}
 		return err
 	}
 
@@ -56,13 +59,6 @@ func DeleteObjectAndMeta(dirPath, bucket, object string) error {
 
 	if !ObjectExisted {
 		return ErrObjectNotExist
-		// err := os.Remove(dirPath + bucket + "/" + object)
-		// 	if err != nil {
-		//       if os.IsNotExist(err){
-		//         return ErrObjectNotExist
-		//       }
-		// 		return err
-		// 	}
 	}
 
 	if len(filteredRecords) == 1 {
@@ -92,13 +88,27 @@ func DeleteObjectAndMeta(dirPath, bucket, object string) error {
 }
 
 func CheckObjectExist(dirPath, bucket, object string) error {
-	_, err := os.Stat(dirPath + bucket + "/" + object)
+	csvObjectsFile, err := os.Open(dirPath + bucket + "/" + "objects.csv")
+	defer csvObjectsFile.Close()
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ErrObjectNotExist
-		} else {
-			return err
+		}
+		return err
+	}
+
+	csvObjectsReader := csv.NewReader((csvObjectsFile))
+
+	csvObjectsRecords, err := csvObjectsReader.ReadAll()
+	if err != nil {
+		return err
+	}
+
+	for _, row := range csvObjectsRecords {
+		if row[0] == object {
+			return nil
 		}
 	}
-	return nil
+
+	return ErrObjectNotExist
 }

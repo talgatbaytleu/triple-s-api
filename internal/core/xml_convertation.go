@@ -162,11 +162,14 @@ func ResponseErrorXML(err error, urlpath string, w http.ResponseWriter) {
 	errstr.ErrorMessage = err.Error()
 
 	switch err {
-	case ErrBucketNotExist, ErrObjectNotExist, ErrWrongEndpoint:
+	case ErrBucketNotExist, ErrObjectNotExist:
 		errstr.StatusCode = 404
 	case ErrBucketAlreadyExists, ErrBucketNotEmpty:
 		errstr.StatusCode = 409
-	case ErrInvBucketNameIP, ErrInvBucketNameDashPeriod, ErrInvBucketNameLongSymbols:
+	case ErrInvBucketNameIP,
+		ErrInvBucketNameDashPeriod,
+		ErrInvBucketNameLongSymbols,
+		ErrWrongEndpoint:
 		errstr.StatusCode = 400
 	default:
 		errstr.StatusCode = 500

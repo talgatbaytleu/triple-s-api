@@ -19,7 +19,6 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 	endpoint := core.DetermineEndpoint(fullPath)
 	bucket, object := core.SplitPath(fullPath)
 
-	fmt.Println(endpoint)
 	switch endpoint {
 	case "bucket":
 		err := core.ValidateBucket(bucket)
@@ -44,7 +43,8 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 200 RESPONSE
-		w.Write([]byte("Bucket successfully created!"))
+		fmt.Println("Bucket successfully created")
+		w.WriteHeader(200)
 		return
 
 		// PUT object!!!
@@ -91,7 +91,8 @@ func PutHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("6", err)
 			return
 		}
-		w.Write([]byte("Object successfully created!"))
+		fmt.Println("Object successfully created!")
+		w.WriteHeader(200)
 		return
 
 	default:
